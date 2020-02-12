@@ -1,51 +1,69 @@
 const fs = require("fs");
+const path = require("path");
 const inquirer = require("inquirer");
+const api = require("./api");
+const open = require("open");
+const convertFactory = require("electron-html-to");
+const generateHTML = require("./generateHTML");
 
 
 const questions = [
    {
        type: "input",
-       message: "What is your GitHub username?",
-       name: "github"
+       name: "github",
+       message: "What is your GitHub username?"
    },
 
    {
-       type: "input",
+       type: "list",
+       name: "color",
        message: "What is your favorite color?",
-       name: "color"
-   },
+       choices: ["red", "blue", "green", "pink"]
+   }
 ];
 
-function generateHTML(answers) {
-    return `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <title>Document</title>
-  </head>
-  <body>
-    <div class="jumbotron jumbotron-fluid">
-    <div class="container">
-      <h3>Example heading <span class="badge badge-secondary">Contact Me</span></h3>
-      <ul class="list-group">
-        <li class="list-group-item">My GitHub username is ${answers.github}</li>
-      </ul>
-    </div>
-  </div>
-  </body>
-  </html>`;
-  }
-  
-  promptUser()
-    .then(function(answers) {
-      const html = generateHTML(answers);
-  
-      return writeFileAsync("index.html", html);
-    })
+function writeToFile(fileName, data) {
+  return fs.writeFileSync(path.join(process.cwd(), fileName), data);
+}
 
+function init() {
+  inquirer.prompt(questions).then(({ github, color }) => {
+    console.log("Serching ");
+    
+    api
+    .getUser(github)
+    .then(response =>
+      api.getTotalStars(gitHub).then(stars => {
+        return generateHTML({
+          stars,
+          color,
+          ...response.data
+        });
+      })
+    )
+
+    .then(html => {
+      const conversion = convertFactory ({
+        converterPath: convertFactory.converters.PDF
+      });
+
+      conversion({ html }, function(err, result) {
+        if (err) {
+          return console.error(err);
+        }
+
+        result.stream.pipe(
+          fs.createWriteStream(path.join(__dirname, "resume.pdf"))
+        );
+        conversion.kill();
+      });
+
+      open(path.join(process.cwd(), "resume.pdf"));
+    });
+  });
+}
+
+init();
 
 
 
